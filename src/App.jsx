@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 const ASPECTS = [
-  { emoji: "👤", question: "Quanto conta che sia più giovane di tuo marito?" },
+  { emoji: "🌀", question: "Quanto spesso ti capita di pensare all'idea di fare sesso con un altro uomo? (1 = mai, 10 = tutti i giorni)" },
   { emoji: "😍", question: "Quanto conta che sia esteticamente bello?" },
   { emoji: "🔮", question: "Quanto ti piacerebbe che fosse qualcuno che già conosci, per cui provi un'attrazione mai messa in pratica?" },
   { emoji: "👑", question: "Quanto vuoi che sia dominante e fisico durante il rapporto, anche a costo di lasciarti segni?" },
@@ -16,6 +16,35 @@ const ASPECTS = [
 const MAX_TOTAL = 50;
 const MAX_PER = 10;
 
+function SliderCard({ aspect, index, value, onChange }) {
+  const pct = (value / MAX_PER) * 100;
+
+  useEffect(() => {
+    const el = document.getElementById(`slider-${index}`);
+    if (el) el.style.setProperty('--pct', `${pct}%`);
+  }, [value, pct, index]);
+
+  return (
+    <div className="aspect-card">
+      <div className="aspect-top">
+        <span className="aspect-emoji">{aspect.emoji}</span>
+        <div className="aspect-question">{aspect.question}</div>
+        <div className={`aspect-val ${value === MAX_PER ? 'maxed' : ''}`}>{value}</div>
+      </div>
+      <input
+        id={`slider-${index}`}
+        type="range"
+        min="0"
+        max="10"
+        step="1"
+        value={value}
+        style={{ '--pct': `${pct}%` }}
+        onChange={(e) => onChange(index, parseInt(e.target.value))}
+      />
+    </div>
+  );
+}
+
 export default function App() {
   const [screen, setScreen] = useState("intro");
   const [values, setValues] = useState(Array(10).fill(0));
@@ -25,8 +54,7 @@ export default function App() {
   const total = values.reduce((a, b) => a + b, 0);
   const remaining = MAX_TOTAL - total;
 
-  function handleSlider(idx, raw) {
-    const newVal = Math.min(parseInt(raw), MAX_PER);
+  function handleSlider(idx, newVal) {
     const otherSum = values.reduce((a, b, i) => i !== idx ? a + b : a, 0);
     const clamped = Math.min(newVal, MAX_TOTAL - otherSum);
     setValues(v => v.map((val, i) => i === idx ? clamped : val));
@@ -58,24 +86,40 @@ export default function App() {
     setScreen("intro");
   }
 
+  const Header = () => (
+    <header className="site-header">
+      <div className="logo-mark">HWA</div>
+      <div className="logo-main">HotWife <span>Awakening</span></div>
+      <div className="logo-tagline">Quiz Psicologico</div>
+    </header>
+  );
+
+  const Footer = () => (
+    <footer className="site-footer">
+      <div className="site-footer-logo">HW<span>A</span></div>
+    </footer>
+  );
+
   return (
     <>
-      <div className="bg-texture" />
+      <div className="bg-layer" />
       <div className="container">
+        <Header />
 
         {screen === "intro" && (
           <div className="screen active">
-            <div className="intro-eyebrow">Quiz psicologico</div>
+            <div className="intro-badge">Quiz esclusivo</div>
             <h1 className="intro-title">
-              Cosa cerchi <em>veramente</em> nel terzo di coppia?
+              Cosa cerchi <em>veramente</em><br />nel terzo di coppia?
             </h1>
-            <div className="divider" />
             <p className="intro-text">
               Lo sapevi che le caratteristiche che sogni nel terzo per i tuoi giochi possono rivelarti tanti aspetti che magari non avevi mai considerato su cosa inconsciamente ti eccita nel tuo ruolo di HotWife?
-              <br /><br />
+            </p>
+            <p className="intro-text">
               Distribuisci 50 punti totali tra le 10 caratteristiche che vedi di seguito e la nostra AI addestrata con oltre 1.000 libri e 2.000 siti sulle relazioni non monogame ti farà veramente capire chi sei.
             </p>
-            <button className="btn" onClick={() => setScreen("quiz")}>
+            <div className="intro-divider" />
+            <button className="btn btn-primary" onClick={() => setScreen("quiz")}>
               Inizia il quiz →
             </button>
           </div>
@@ -83,48 +127,41 @@ export default function App() {
 
         {screen === "quiz" && (
           <div className="screen active">
-            <div className="quiz-header">
-              <div className="quiz-eyebrow">Distribuisci i tuoi punti</div>
-              <div className="quiz-title">Massimo 10 punti per caratteristica, 50 in totale</div>
-            </div>
+            <div className="section-label">Il tuo profilo</div>
+            <div className="section-title">Distribuisci 50 punti — massimo 10 per caratteristica</div>
 
-            <div className="budget-wrap">
-              <div className="budget-left">
-                <div className={`budget-num ${remaining === 0 ? "done" : ""}`}>{remaining}</div>
-                <div className="budget-sublabel">punti rimasti</div>
-              </div>
-              <div className="budget-bar-wrap">
-                <div className="budget-bar-track">
-                  <div className="budget-bar-fill" style={{ width: `${(total / MAX_TOTAL) * 100}%` }} />
+            <div className="budget-box">
+              <div className={`budget-number ${remaining === 0 ? 'done' : ''}`}>{remaining}</div>
+              <div className="budget-right">
+                <div className="budget-sublabel">Punti rimasti</div>
+                <div className="progress-track">
+                  <div className="progress-fill" style={{ width: `${(total / MAX_TOTAL) * 100}%` }} />
                 </div>
-                <div className="budget-bar-label">{total} / {MAX_TOTAL}</div>
+                <div className="budget-fraction">{total} / {MAX_TOTAL}</div>
               </div>
             </div>
 
             {ASPECTS.map((a, i) => (
-              <div key={i} className="aspect-card">
-                <div className="aspect-header">
-                  <div className="aspect-left">
-                    <span className="aspect-emoji">{a.emoji}</span>
-                    <div className="aspect-question">{a.question}</div>
-                  </div>
-                  <div className={`aspect-value ${values[i] === MAX_PER ? "maxed" : ""}`}>{values[i]}</div>
-                </div>
-                <input
-                  type="range"
-                  min="0"
-                  max="10"
-                  step="1"
-                  value={values[i]}
-                  onChange={(e) => handleSlider(i, e.target.value)}
-                />
-              </div>
+              <SliderCard
+                key={i}
+                aspect={a}
+                index={i}
+                value={values[i]}
+                onChange={handleSlider}
+              />
             ))}
 
-            {error && <p className="hint" style={{ color: "#c0392b" }}>{error}</p>}
-            {remaining > 0 && <p className="hint">Hai ancora {remaining} punti da assegnare</p>}
+            {error && <p className="hint-msg" style={{ color: '#c0392b' }}>{error}</p>}
+            {total < 10 && (
+              <p className="hint-msg">Assegna almeno 10 punti per continuare</p>
+            )}
 
-            <button className="btn" onClick={handleSubmit} disabled={remaining !== 0} style={{ marginTop: "1.5rem" }}>
+            <button
+              className="btn btn-primary"
+              onClick={handleSubmit}
+              disabled={total < 10}
+              style={{ marginTop: '1.5rem' }}
+            >
               Scopri il tuo profilo →
             </button>
             <button className="btn btn-ghost" onClick={reset}>← Ricomincia</button>
@@ -133,47 +170,50 @@ export default function App() {
 
         {screen === "loading" && (
           <div className="screen active">
-            <div className="loading-wrap">
+            <div className="loading-screen">
               <div className="loading-title">Stiamo analizzando i tuoi desideri...</div>
               <div className="loading-sub">elaborazione in corso</div>
-              <div className="pulse-dots"><span /><span /><span /></div>
+              <div className="dots"><span /><span /><span /></div>
             </div>
           </div>
         )}
 
         {screen === "result" && (
           <div className="screen active">
-            <div className="result-eyebrow">La tua analisi</div>
-            <div className="result-title">Ecco cosa rivela di te</div>
+            <div className="result-intro">
+              <div className="section-label">La tua analisi</div>
+              <div className="section-title">Ecco cosa rivela di te</div>
+            </div>
 
             <div className="score-grid">
               {ASPECTS.map((a, i) => (
-                <div key={i} className="score-item">
-                  <span className="score-item-emoji">{a.emoji}</span>
-                  <span className={`score-item-val ${values[i] >= 8 ? "high" : ""}`}>{values[i]}</span>
+                <div key={i} className="score-cell">
+                  <span className="score-cell-emoji">{a.emoji}</span>
+                  <span className={`score-cell-val ${values[i] >= 8 ? 'high' : ''}`}>{values[i]}</span>
                 </div>
               ))}
             </div>
 
             <div className="result-card">
-              <div className="result-label">La tua psicologia</div>
-              <div className="result-text">
+              <div className="result-card-label">La tua psicologia</div>
+              <div className="result-body">
                 {result.split("\n").filter(l => l.trim()).map((line, i) => (
                   <p key={i}>{line}</p>
                 ))}
               </div>
             </div>
 
-            <div className="result-footer">
-              <div className="result-footer-line" />
-              <div className="result-footer-text">Analisi generata da AI</div>
-              <div className="result-footer-line" />
+            <div className="result-sep">
+              <div className="result-sep-line" />
+              <div className="result-sep-text">Analisi generata da AI</div>
+              <div className="result-sep-line" />
             </div>
 
-            <button className="btn btn-ghost" onClick={reset} style={{ marginTop: "0" }}>← Rifai il quiz</button>
+            <button className="btn btn-ghost" onClick={reset}>← Rifai il quiz</button>
           </div>
         )}
 
+        <Footer />
       </div>
     </>
   );
