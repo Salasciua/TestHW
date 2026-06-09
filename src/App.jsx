@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 
+// v4
+
 const ASPECTS = [
   { emoji: "🌀", question: "Quanto spesso ti capita di pensare all'idea di fare sesso con un altro uomo? (1 = mai, 10 = tutti i giorni)" },
   { emoji: "😍", question: "Quanto conta che sia esteticamente bello?" },
