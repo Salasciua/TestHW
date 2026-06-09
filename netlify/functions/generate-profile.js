@@ -6,31 +6,74 @@ exports.handler = async (event) => {
   try {
     const { aspects, values } = JSON.parse(event.body);
 
-    const top3 = aspects
-      .map((a, i) => ({ label: a.question, value: values[i] }))
-      .sort((a, b) => b.value - a.value)
-      .slice(0, 3)
-      .filter(a => a.value > 0);
+    const supabaseUrl = process.env.SUPABASE_URL;
+    const supabaseKey = process.env.SUPABASE_ANON_KEY;
 
-    const allScores = aspects
-      .map((a, i) => `- ${a.question}: ${values[i]} punti`)
-      .join('\n');
+    await fetch(`${supabaseUrl}/rest/v1/responses`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': supabaseKey,
+        'Authorization': `Bearer ${supabaseKey}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        v1: values[0], v2: values[1], v3: values[2], v4: values[3],
+        v5: values[4], v6: values[5], v7: values[6], v8: values[7],
+        v9: values[8], v10: values[9],
+      }),
+    });
 
-    const prompt = `Sei una psicologa specializzata in relazioni non monogame e dinamiche HotWife/Cuckold. Una donna ha completato un test sulle caratteristiche del suo terzo ideale, distribuendo 50 punti tra 10 aspetti (massimo 10 per aspetto).
+    const PRIORITY = [
+      { id: 'dimensioni',  indices: [4, 5] },
+      { id: 'pensieri',    indices: [0] },
+      { id: 'segno',       indices: [6] },
+      { id: 'bacio',       indices: [7] },
+      { id: 'estetica',    indices: [1] },
+      { id: 'dominante',   indices: [3] },
+      { id: 'orale',       indices: [8] },
+      { id: 'penetrativo', indices: [9] },
+    ];
 
-Ecco i punteggi completi:
-${allScores}
+    const q3score = values[2];
 
-Le sue priorità principali sono: ${top3.map(t => `"${t.label}" (${t.value} punti)`).join(', ')}.
+    const top2 = [];
+    for (const p of PRIORITY) {
+      if (top2.length >= 2) break;
+      const score = Math.max(...p.indices.map(i => values[i]));
+      if (score >= 7) top2.push({ ...p, score });
+    }
 
-Scrivi un'analisi psicologica profonda e intima di 5-6 frasi. Per ogni priorità principale:
-- Rifletti su cosa rivela di lei come donna e come HotWife
-- Evidenzia la carenza o il desiderio insoddisfatto che probabilmente sente nel suo matrimonio
-- Spiega come questa scelta sia anche un messaggio implicito al marito — cosa vuole fargli capire, come vuole che si senta inferiore o inadeguato in quell'aspetto specifico
-- Usa un tono intimo, complice, come una conversazione tra donne consapevoli — senza giudizi, anzi valorizzando la sua consapevolezza e il controllo che ha sulla situazione
-- Chiudi con una frase che la celebri per la chiarezza con cui sa cosa vuole
+    const categoryText = {
+      dimensioni:  `Ha dedicato ${values[4]} punti alla lunghezza e ${values[5]} punti alla larghezza — trattale come un'unica riflessione. Questa preferenza può rivelare un desiderio di vivere un'esperienza fisica molto intensa e appagante, diversa da quella a cui è abituata. Rifletti su come questa scelta parli di un bisogno profondo di sentirsi completamente appagata e su come questa consapevolezza, una volta vissuta, possa riaccendere nel partner il desiderio di riconquistarla.`,
+      pensieri:    `Ha dedicato ${values[0]} punti alla frequenza con cui pensa a questa fantasia. Questo rivela quanto il desiderio sia già presente e radicato nella sua mente — non è una curiosità passeggera. Falla riflettere su quanto energia emotiva stia già investendo in questi pensieri e su cosa significherebbe per lei trasformare questa energia in qualcosa di reale e consapevole.`,
+      segno:       `Ha dedicato ${values[6]} punti all'importanza di un segno evidente da condividere con il marito. Questo desiderio parla di trasparenza e di voler includere il partner in modo tangibile nell'esperienza — è un atto di fiducia profonda che rafforza il legame, trasformando qualcosa di intimo in un momento condiviso capace di riaccendere la connessione emotiva tra loro.`,
+      bacio:       `Ha dedicato ${values[7]} punti all'importanza del bacio. Come per l'attrazione emotiva, questa scelta rivela che lei non cerca solo un'esperienza fisica ma vuole sentirsi coinvolta anche a livello sensoriale e intimo. Il bacio è una delle forme di connessione più personali — il fatto che lo cerchi anche in questo contesto dice molto sulla sua profondità emotiva.`,
+      estetica:    `Ha dedicato ${values[1]} punti all'aspetto estetico. Questo rivela il desiderio di sentirsi scelta e desiderata da qualcuno che incarna un ideale di bellezza — non è superficialità, ma il bisogno di sentirsi all'altezza di qualcuno che molti desidererebbero. È una forma di autostima e consapevolezza del proprio valore.`,
+      dominante:   `Ha dedicato ${values[3]} punti al carattere dominante. Questa preferenza parla del desiderio di abbandonarsi completamente, di lasciare il controllo e di essere desiderata con una forza e una decisione che nella quotidianità spesso manca. Vivere questa esperienza può aiutarla a riconnettersi con una parte di sé che ama sentirsi al centro di un desiderio travolgente.`,
+      orale:       `Ha dedicato ${values[8]} punti all'abilità nel sesso orale. Questa scelta rivela il desiderio di ricevere piacere pieno e dedicato, di essere messa al centro dell'attenzione senza riserve.`,
+      penetrativo: `Ha dedicato ${values[9]} punti all'esperienza penetrativa completa. Questo parla del desiderio di vivere l'esperienza nella sua totalità, senza mezze misure — è la voglia di sentirsi completamente presente e appagata in ogni sua dimensione.`,
+    };
 
-Non usare elenchi puntati. Scrivi in forma di paragrafo fluido e coinvolgente. Inizia direttamente senza saluti o introduzioni.`;
+    const q3text = q3score >= 5
+      ? `Ha dedicato ${q3score} punti all'attrazione verso qualcuno che già conosce. Questo è un segnale molto significativo: ha intuito che la componente più intensa di questa dinamica non è fisica ma emotiva. Sentirsi attratta da qualcuno con cui c'è già una connessione reale rende tutto più vivo e coinvolgente. Invitala a fare una riflessione onesta con se stessa: le è mai capitato, durante la relazione con il suo partner, di provare un'attrazione o una fantasia per qualcuno che conosceva — un amico, un collega, una persona della sua cerchia? Se la risposta è sì, invitala a ricordare come si è sentita in quel momento: in colpa, eccitata, curiosa, confusa? E a chiedersi se ha mai pensato di condividere quella fantasia con il suo partner. Spesso queste emozioni vengono represse perché considerate sbagliate, ma in realtà sono una parte naturale e comune della vita interiore di molte donne — e riconoscerle con onestà è il primo passo per trasformarle in qualcosa di condiviso e arricchente per la coppia.`
+      : '';
+
+    const top2text = top2.map(p => categoryText[p.id] || '').filter(Boolean).join(' ');
+
+    const prompt = `Sei una psicologa specializzata in relazioni consensualmente non monogame. Una donna ha completato un test distribuendo fino a 50 punti tra 10 caratteristiche del suo terzo ideale.
+
+Scrivi un'analisi psicologica profonda, intima e rispettosa in forma di paragrafo fluido continuo, senza titoli o elenchi.
+
+PRIMA: 2-3 righe che descrivono il profilo del terzo ideale emerso dai suoi punteggi, evidenziando cosa dice di lei come donna e di ciò che desidera.
+
+${q3text ? `POI: ${q3text}` : ''}
+
+${top2text ? `POI ANALIZZA: ${top2text} Per ciascuna di queste caratteristiche, rifletti su come questa preferenza si colleghi al desiderio di riaccendere l'intensità emotiva nella coppia — non attraverso conflitto ma attraverso la consapevolezza che il desiderio si rinnova quando entrambi i partner si sentono coinvolti, presenti, necessari l'uno all'altra. Esplora come queste dinamiche, vissute con consapevolezza e comunicazione aperta, possano aiutare entrambi a riscoprire l'attrazione che il tempo tende ad attenuare.` : ''}
+
+CHIUDI: Con tono caldo e complice, celebra la sua consapevolezza emotiva e il coraggio di esplorare i propri desideri. Falle sentire che seguire questi desideri con maturità e onestà può portarla non solo alla libertà che cerca, ma anche a un legame più profondo e autentico con il suo partner — uno in cui entrambi si scelgono ogni giorno con rinnovata intensità.
+
+Scrivi in italiano, tono intimo e non giudicante, paragrafo fluido, massimo 450 parole. Inizia direttamente senza saluti.`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -41,14 +84,13 @@ Non usare elenchi puntati. Scrivi in forma di paragrafo fluido e coinvolgente. I
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5',
-        max_tokens: 1024,
+        max_tokens: 800,
         messages: [{ role: 'user', content: prompt }],
       }),
     });
 
     const data = await response.json();
     console.log('Anthropic status:', response.status);
-    console.log('Anthropic data:', JSON.stringify(data));
     const text = data.content?.find(b => b.type === 'text')?.text || '';
 
     return {
